@@ -288,7 +288,7 @@
       <input type="number" id="itemQty" placeholder="1" min="1" value="1" step="1" inputmode="numeric">
     </div>
     <div>
-      <label>Valor total (R$)</label>
+      <label>Valor unitário (R$)</label>
       <div class="currency-wrap">
         <span class="prefix">R$</span>
         <input type="text" id="itemPrice" placeholder="0,00" inputmode="numeric" oninput="onCurrencyInput(this)">
@@ -395,11 +395,12 @@
   function addItem() {
     const name  = document.getElementById('itemName').value.trim();
     const qty   = parseInt(document.getElementById('itemQty').value) || 1;
-    const price = parseCurrency(document.getElementById('itemPrice').value);
+    const unitPrice = parseCurrency(document.getElementById('itemPrice').value);
 
     if (!name)       { shake('itemName'); return; }
-    if (price <= 0)  { shakeEl(document.querySelector('.currency-wrap input#itemPrice')); return; }
+    if (unitPrice <= 0)  { shakeEl(document.querySelector('.currency-wrap input#itemPrice')); return; }
 
+    const price = unitPrice * qty;
     const item = { name, qty, price };
 
     if (pesoOn) {
