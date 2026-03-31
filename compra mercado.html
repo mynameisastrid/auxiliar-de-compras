@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Mercado</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e1117; --surface: #161b25; --card: #1c2333; --border: #2a3348;
+    --accent: #4ade80; --accent2: #22d3ee; --danger: #f87171; --warn: #fb923c;
+    --text: #e8edf5; --muted: #6b7a96; --green-glow: 0 0 20px rgba(74,222,128,0.25);
+  }
+  body {
+    font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 0 0 100px;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74,222,128,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(34,211,238,0.05) 0%, transparent 50%);
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 24px 20px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: rgba(14,17,23,0.92);
+    backdrop-filter: blur(12px); z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .total-header { text-align: right; }
+  .total-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-family: 'DM Mono', monospace; }
+  .total-value { font-size: 1.6rem; font-weight: 800; color: var(--accent); font-family: 'DM Mono', monospace; text-shadow: var(--green-glow); transition: all 0.3s; }
+
+  .section-box {
+    margin: 16px 16px 0; background: var(--card);
+    border: 1px solid var(--border); border-radius: 20px; padding: 18px;
+    position: relative; overflow: hidden;
+  }
+  .section-box.form-section::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 14px; font-family: 'DM Mono', monospace; }
+
+  .field-row { display: grid; gap: 10px; margin-bottom: 10px; }
+  .field-row.two { grid-template-columns: 1fr 1fr; }
+
+  label { font-size: 0.72rem; color: var(--muted); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 13px; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 0.95rem; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s; appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(74,222,128,0.12); }
+  input::placeholder { color: var(--muted); font-size: 0.85rem; }
+
+  .currency-wrap { position: relative; }
+  .currency-wrap .prefix {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--muted); pointer-events: none;
+  }
+  .currency-wrap input { padding-left: 38px; }
+
+  .peso-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; cursor: pointer; width: fit-content; }
+  .toggle-track { width: 40px; height: 22px; background: var(--border); border-radius: 99px; position: relative; transition: background 0.2s; }
+  .toggle-track.on { background: var(--accent); }
+  .toggle-thumb { width: 16px; height: 16px; background: white; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+  .toggle-track.on .toggle-thumb { left: 21px; }
+  .toggle-label { font-size: 0.8rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .peso-field { display: none; }
+  .peso-field.visible { display: block; }
+
+  .btn-add {
+    width: 100%; padding: 13px; background: var(--accent); color: #0a1a0e;
+    border: none; border-radius: 12px; font-family: 'Syne', sans-serif;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.2s; box-shadow: var(--green-glow); letter-spacing: 0.5px;
+  }
+  .btn-add:active { transform: scale(0.97); }
+
+  .list-section { padding: 24px 16px 0; }
+  .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .list-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .item-count { font-size: 0.7rem; font-family: 'DM Mono', monospace; color: var(--accent2); background: rgba(34,211,238,0.1); padding: 3px 9px; border-radius: 99px; }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+  .empty-state .emoji { font-size: 3rem; display: block; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.85rem; line-height: 1.6; }
+
+  .item-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 15px 16px; margin-bottom: 10px; display: flex; align-items: flex-start;
+    gap: 12px; animation: slideIn 0.25s ease; transition: border-color 0.2s;
+  }
+  .item-card:hover { border-color: rgba(74,222,128,0.3); }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  .item-index { min-width: 28px; height: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-family: 'DM Mono', monospace; color: var(--muted); }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name { font-size: 0.95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
+  .item-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tag { font-family: 'DM Mono', monospace; font-size: 0.68rem; padding: 2px 8px; border-radius: 6px; }
+  .tag-qty { background: rgba(34,211,238,0.1); color: var(--accent2); border: 1px solid rgba(34,211,238,0.2); }
+  .tag-weight { background: rgba(251,146,60,0.1); color: var(--warn); border: 1px solid rgba(251,146,60,0.2); }
+  .tag-unit { background: rgba(74,222,128,0.08); color: var(--muted); border: 1px solid var(--border); }
+  .item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .item-price { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 500; color: var(--accent); }
+  .btn-delete { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); color: var(--danger); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; }
+  .btn-delete:active { transform: scale(0.9); }
+
+  .summary-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(22,27,37,0.97); backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border); padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; z-index: 200;
+  }
+  .sum-item { text-align: center; border-right: 1px solid var(--border); }
+  .sum-item:last-child { border-right: none; }
+  .sum-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-family: 'DM Mono', monospace; display: block; margin-bottom: 3px; }
+  .sum-val { font-family: 'DM Mono', monospace; font-size: 0.9rem; font-weight: 500; color: var(--text); }
+  .sum-val.green { color: var(--accent); }
+  .btn-receipt { background: none; border: none; color: var(--accent2); font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; padding: 0; }
+  .btn-receipt .icon { font-size: 1.1rem; }
+
+  .progress-wrap { height: 8px; background: var(--surface); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-bar { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.4s ease, background 0.3s; }
+  .progress-info { display: flex; justify-content: space-between; margin-top: 6px; }
+  .progress-info span { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.78); backdrop-filter: blur(8px);
+    z-index: 500; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .receipt-wrap {
+    width: 100%; max-width: 360px; max-height: 90vh;
+    overflow-y: auto; position: relative;
+    animation: popIn 0.2s ease;
+  }
+  @keyframes popIn { from { opacity:0; transform:scale(0.92) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
+  .receipt-serrate-top {
+    width: 100%; height: 18px;
+    background:
+      radial-gradient(circle at 10px 18px, transparent 10px, #f5f0e8 10px) -10px 0 / 20px 18px repeat-x;
+  }
+  .receipt-serrate-bottom {
+    width: 100%; height: 18px;
+    background:
+      radial-gradient(circle at 10px 0px, transparent 10px, #f5f0e8 10px) -10px 0 / 20px 18px repeat-x;
+  }
+
+  .receipt-body {
+    background: #f5f0e8;
+    padding: 4px 28px 20px;
+    font-family: 'DM Mono', monospace;
+    color: #1a1a1a;
+  }
+
+  .r-center { text-align: center; }
+  .r-title { font-size: 1.55rem; font-weight: 800; font-family: 'Syne', sans-serif; letter-spacing: -0.5px; color: #111; }
+  .r-sub { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2.5px; color: #999; margin-top: 2px; }
+
+  .r-dash { border: none; border-top: 2px dashed #c0b8a8; margin: 13px 0; }
+  .r-dot  { border: none; border-top: 1px dotted #c8c0b0; margin: 8px 0; }
+
+  .r-meta { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 4px; }
+  .r-meta-item .lbl { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+  .r-meta-item .val { font-size: 0.82rem; color: #222; }
+
+  .r-col-head {
+    display: grid; grid-template-columns: 2fr 0.6fr 1fr 1fr;
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #888;
+    margin-bottom: 4px; gap: 4px;
+  }
+  .r-col-head span:not(:first-child) { text-align: right; }
+
+  .r-item-row {
+    display: grid; grid-template-columns: 2fr 0.6fr 1fr 1fr;
+    font-size: 0.78rem; color: #222; padding: 5px 0;
+    border-bottom: 1px dotted #d4ccbc; gap: 4px; align-items: start;
+  }
+  .r-item-row span:not(:first-child) { text-align: right; }
+  .r-iname { line-height: 1.3; }
+  .r-weight-tag { font-size: 0.62rem; color: #888; display: block; }
+
+  .r-total-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: #333; padding: 3px 0; }
+  .r-total-row.grand { font-size: 1.05rem; font-weight: 700; color: #111; padding-top: 8px; }
+
+  .r-footer { text-align: center; font-size: 0.68rem; color: #aaa; line-height: 1.9; margin-top: 14px; }
+  .r-barcode {
+    margin: 10px auto 0; text-align: center;
+    font-size: 38px; letter-spacing: -6px; color: #444;
+    line-height: 1; font-family: monospace;
+    overflow: hidden; white-space: nowrap;
+  }
+  .r-cod { font-size: 0.6rem; letter-spacing: 1px; color: #bbb; margin-top: 4px; display: block; }
+
+  .r-actions { display: flex; gap: 10px; padding: 14px 28px 0; background: #f5f0e8; }
+  .btn-print-r {
+    flex: 1; padding: 11px; background: #1a1a1a; color: #f5f0e8;
+    border: none; border-radius: 8px; font-family: 'Syne', sans-serif;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s;
+  }
+  .btn-print-r:active { opacity: 0.8; }
+  .btn-close-r {
+    flex: 1; padding: 11px; background: transparent; color: #777;
+    border: 1px solid #c0b8a8; border-radius: 8px;
+    font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  }
+
+  @media print {
+    body * { visibility: hidden !important; }
+    .receipt-wrap, .receipt-wrap * { visibility: visible !important; }
+    .receipt-wrap { position: fixed; top: 0; left: 0; width: 100%; max-height: none; overflow: visible; }
+    .modal-overlay { display: flex !important; background: white; }
+    .r-actions { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛒</div>
+    Mercado
+  </div>
+  <div class="total-header">
+    <div class="total-label">Total</div>
+    <div class="total-value" id="totalHeader">R$ 0,00</div>
+  </div>
+</header>
+
+<div class="section-box" style="margin-top:20px;">
+  <div class="section-title">💰 Orçamento</div>
+  <div class="currency-wrap" style="margin-bottom:12px;">
+    <span class="prefix">R$</span>
+    <input type="text" id="budgetInput" placeholder="0,00" inputmode="numeric" oninput="onCurrencyInput(this); updateBudget(); saveData();">
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar" style="width:0%"></div>
+  </div>
+  <div class="progress-info">
+    <span id="progressPct">0%</span>
+    <span id="remainVal" style="color:var(--text)">—</span>
+  </div>
+</div>
+
+<div class="section-box">
+  <div class="section-title">🧾 Configurar recibo</div>
+  <div class="field-row two">
+    <div>
+      <label>Nome do mercado</label>
+      <input type="text" id="cfgLocal" placeholder="Ex: Supermercado BH">
+    </div>
+    <div>
+      <label>Endereço</label>
+      <input type="text" id="cfgEnd" placeholder="Ex: Rua das Flores, 12">
+    </div>
+  </div>
+  <div class="field-row two">
+    <div>
+      <label>Taxa adicional (%)</label>
+      <input type="text" id="cfgTax" placeholder="Ex: 10" inputmode="decimal">
+    </div>
+    <div>
+      <label>Atendente</label>
+      <input type="text" id="cfgCaixa" placeholder="Ex: Carlos">
+    </div>
+  </div>
+</div>
+
+<div class="section-box form-section">
+  <div class="section-title">➕ Adicionar item</div>
+  <div class="field-row">
+    <div>
+      <label>Nome do item</label>
+      <input type="text" id="itemName" placeholder="Ex: Frango, Arroz, Maçã...">
+    </div>
+  </div>
+  <div class="field-row two">
+    <div>
+      <label>Quantidade</label>
+      <input type="number" id="itemQty" placeholder="1" min="1" value="1" step="1" inputmode="numeric">
+    </div>
+    <div>
+      <label>Valor total (R$)</label>
+      <div class="currency-wrap">
+        <span class="prefix">R$</span>
+        <input type="text" id="itemPrice" placeholder="0,00" inputmode="numeric" oninput="onCurrencyInput(this)">
+      </div>
+    </div>
+  </div>
+  <div class="peso-toggle" onclick="togglePeso()">
+    <div class="toggle-track" id="toggleTrack"><div class="toggle-thumb"></div></div>
+    <span class="toggle-label">Item com peso (kg/g)?</span>
+  </div>
+  <div class="peso-field" id="pesoField">
+    <div class="field-row two">
+      <div>
+        <label>Peso</label>
+        <input type="text" id="itemWeight" placeholder="Ex: 1,500" inputmode="decimal">
+      </div>
+      <div>
+        <label>Unidade</label>
+        <select id="weightUnit">
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <button class="btn-add" onclick="addItem()">
+    <span>＋</span> Adicionar ao carrinho
+  </button>
+</div>
+
+<div class="list-section">
+  <div class="list-header">
+    <span class="list-title">🛍 Carrinho</span>
+    <span class="item-count" id="itemCount">0 itens</span>
+  </div>
+  <div id="itemList">
+    <div class="empty-state">
+      <span class="emoji">🛒</span>
+      <p>Seu carrinho está vazio.<br>Adicione o primeiro item acima.</p>
+    </div>
+  </div>
+</div>
+
+<div class="summary-bar">
+  <div class="sum-item">
+    <span class="sum-label">Itens</span>
+    <span class="sum-val" id="sumItems">0</span>
+  </div>
+  <div class="sum-item">
+    <span class="sum-label">Qtd</span>
+    <span class="sum-val" id="sumQty">0</span>
+  </div>
+  <div class="sum-item">
+    <span class="sum-label">Total</span>
+    <span class="sum-val green" id="sumTotal">R$ 0,00</span>
+  </div>
+  <div class="sum-item">
+    <button class="btn-receipt" onclick="openReceipt()">
+      <span class="icon">🧾</span>
+      <span class="sum-label" style="color:var(--accent2)">Recibo</span>
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
+  <div class="receipt-wrap" id="receiptWrap">
+  </div>
+</div>
+
+<script>
+  let items = [];
+  let pesoOn = false;
+
+  function onCurrencyInput(el) {
+    let raw = el.value.replace(/\D/g, '');
+    if (raw === '') { el.value = ''; return; }
+    if (raw.length > 11) raw = raw.slice(0, 11);
+    let cents = parseInt(raw, 10);
+    let reais = (cents / 100).toFixed(2);
+    let [intPart, decPart] = reais.split('.');
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    el.value = intPart + ',' + decPart;
+  }
+
+  function parseCurrency(val) {
+    if (!val) return 0;
+    return parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+
+  function fmt(val) {
+    return 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtN(val) {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function togglePeso() {
+    pesoOn = !pesoOn;
+    document.getElementById('toggleTrack').classList.toggle('on', pesoOn);
+    document.getElementById('pesoField').classList.toggle('visible', pesoOn);
+  }
+
+  function addItem() {
+    const name  = document.getElementById('itemName').value.trim();
+    const qty   = parseInt(document.getElementById('itemQty').value) || 1;
+    const price = parseCurrency(document.getElementById('itemPrice').value);
+
+    if (!name)       { shake('itemName'); return; }
+    if (price <= 0)  { shakeEl(document.querySelector('.currency-wrap input#itemPrice')); return; }
+
+    const item = { name, qty, price };
+
+    if (pesoOn) {
+      const wRaw = document.getElementById('itemWeight').value.replace(',', '.');
+      const w    = parseFloat(wRaw);
+      const unit = document.getElementById('weightUnit').value;
+      if (!isNaN(w) && w > 0) item.weight = wRaw.replace('.', ',') + ' ' + unit;
+    }
+
+    items.push(item);
+    renderList();
+    resetForm();
+    saveData();
+  }
+
+  function shake(id) { shakeEl(document.getElementById(id)); }
+
+  function shakeEl(el) {
+    if (!el) return;
+    el.style.borderColor = 'var(--danger)';
+    el.style.boxShadow   = '0 0 0 3px rgba(248,113,113,0.2)';
+    el.focus();
+    setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1200);
+  }
+
+  function resetForm() {
+    document.getElementById('itemName').value  = '';
+    document.getElementById('itemQty').value   = '1';
+    document.getElementById('itemPrice').value = '';
+    document.getElementById('itemWeight').value = '';
+    if (pesoOn) togglePeso();
+  }
+
+  function removeItem(idx) { 
+    items.splice(idx, 1); 
+    renderList(); 
+    saveData();
+  }
+
+  function renderList() {
+    const list     = document.getElementById('itemList');
+    const total    = items.reduce((s, i) => s + i.price, 0);
+    const totalQty = items.reduce((s, i) => s + i.qty,   0);
+
+    document.getElementById('itemCount').textContent = items.length + (items.length === 1 ? ' item' : ' itens');
+    document.getElementById('sumItems').textContent  = items.length;
+    document.getElementById('sumQty').textContent    = totalQty;
+    document.getElementById('sumTotal').textContent  = fmt(total);
+    document.getElementById('totalHeader').textContent = fmt(total);
+    updateBudget();
+
+    if (items.length === 0) {
+      list.innerHTML = `<div class="empty-state"><span class="emoji">🛒</span><p>Seu carrinho está vazio.<br>Adicione o primeiro item acima.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = items.map((item, i) => `
+      <div class="item-card">
+        <div class="item-index">${i + 1}</div>
+        <div class="item-info">
+          <div class="item-name">${escHtml(item.name)}</div>
+          <div class="item-meta">
+            <span class="tag tag-qty">× ${item.qty}</span>
+            ${item.weight ? `<span class="tag tag-weight">⚖ ${item.weight}</span>` : ''}
+            <span class="tag tag-unit">${fmt(item.price / item.qty)}/un</span>
+          </div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">${fmt(item.price)}</span>
+          <button class="btn-delete" onclick="removeItem(${i})">✕</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function updateBudget() {
+    const budget = parseCurrency(document.getElementById('budgetInput').value);
+    const total  = items.reduce((s, i) => s + i.price, 0);
+    const bar    = document.getElementById('progressBar');
+    const pct    = document.getElementById('progressPct');
+    const rem    = document.getElementById('remainVal');
+
+    if (budget <= 0) { bar.style.width = '0%'; pct.textContent = '0%'; rem.textContent = '—'; rem.style.color = 'var(--text)'; return; }
+
+    const ratio  = Math.min(total / budget, 1);
+    const pctVal = Math.round(ratio * 100);
+    bar.style.width      = pctVal + '%';
+    bar.style.background = ratio < 0.7 ? 'var(--accent)' : ratio < 0.9 ? 'var(--warn)' : 'var(--danger)';
+    pct.textContent = pctVal + '%';
+
+    const diff = budget - total;
+    rem.textContent  = diff >= 0 ? `Sobra ${fmt(diff)}` : `Passou ${fmt(Math.abs(diff))}`;
+    rem.style.color  = diff >= 0 ? 'var(--accent)' : 'var(--danger)';
+  }
+
+  function openReceipt() {
+    if (items.length === 0) { alert('Adicione itens ao carrinho primeiro.'); return; }
+    buildReceipt();
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeReceipt() { document.getElementById('modalOverlay').classList.remove('open'); }
+  function overlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeReceipt(); }
+
+  function buildReceipt() {
+    const local  = document.getElementById('cfgLocal').value.trim()  || 'Meu Mercado';
+    const end    = document.getElementById('cfgEnd').value.trim()    || '—';
+    const caixa  = document.getElementById('cfgCaixa').value.trim()  || '—';
+    const taxPct = parseFloat(document.getElementById('cfgTax').value.replace(',', '.')) || 0;
+
+    const subtotal = items.reduce((s, i) => s + i.price, 0);
+    const taxVal   = subtotal * (taxPct / 100);
+    const total    = subtotal + taxVal;
+
+    const now     = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR');
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const cod     = String(Math.floor(Math.random() * 9e11 + 1e11));
+
+    const bc = generateBarcode(cod);
+
+    const rowsHtml = items.map(item => `
+      <div class="r-item-row">
+        <span class="r-iname">${escHtml(item.name)}${item.weight ? `<span class="r-weight-tag">⚖ ${item.weight}</span>` : ''}</span>
+        <span>${item.qty}</span>
+        <span>${fmtN(item.price / item.qty)}</span>
+        <span>${fmtN(item.price)}</span>
+      </div>`).join('');
+
+    const taxRowHtml = taxPct > 0 ? `
+      <div class="r-total-row">
+        <span>Taxa (${taxPct.toLocaleString('pt-BR')}%)</span>
+        <span>${fmtN(taxVal)}</span>
+      </div>` : '';
+
+    document.getElementById('receiptWrap').innerHTML = `
+      <div class="receipt-serrate-top"></div>
+      <div class="receipt-body">
+        <div class="r-center" style="margin-bottom:16px;">
+          <div class="r-title">${escHtml(local)}</div>
+          <div class="r-sub">Comprovante de Compra</div>
+        </div>
+        <hr class="r-dash">
+        <div class="r-meta">
+          <div class="r-meta-item">
+            <div class="lbl">Endereço</div>
+            <div class="val">${escHtml(end)}</div>
+          </div>
+        </div>
+        <div class="r-meta" style="margin-top:8px;">
+          <div class="r-meta-item">
+            <div class="lbl">Data</div>
+            <div class="val">${dateStr}</div>
+          </div>
+          <div class="r-meta-item">
+            <div class="lbl">Hora</div>
+            <div class="val">${timeStr}</div>
+          </div>
+          <div class="r-meta-item">
+            <div class="lbl">Atendente</div>
+            <div class="val">${escHtml(caixa)}</div>
+          </div>
+        </div>
+        <hr class="r-dash">
+        <div class="r-col-head">
+          <span>Item</span><span>Qtd</span><span>Unit.</span><span>Total</span>
+        </div>
+        ${rowsHtml}
+        <div style="margin-top:12px;">
+          <hr class="r-dash">
+          <div class="r-total-row">
+            <span>Subtotal</span>
+            <span>${fmtN(subtotal)}</span>
+          </div>
+          ${taxRowHtml}
+          <hr class="r-dot">
+          <div class="r-total-row grand">
+            <span>TOTAL</span>
+            <span>R$ ${fmtN(total)}</span>
+          </div>
+        </div>
+        <hr class="r-dash">
+        <div class="r-footer">
+          Obrigado pela preferência!<br>
+          Volte sempre 🛒
+          <div class="r-barcode">${bc}</div>
+          <span class="r-cod">${cod}</span>
+        </div>
+      </div>
+      <div class="receipt-serrate-bottom"></div>
+      <div class="r-actions">
+        <button class="btn-print-r" onclick="window.print()">🖨️ Imprimir</button>
+        <button class="btn-close-r" onclick="closeReceipt()">Fechar</button>
+      </div>
+    `;
+  }
+
+  function generateBarcode(str) {
+    const chars = '█▌▐║│';
+    let out = '';
+    for (let i = 0; i < 52; i++) {
+      const seed = (parseInt(str[i % str.length]) + i) % chars.length;
+      out += chars[seed];
+    }
+    return out;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function saveData() {
+    const data = {
+      items: items,
+      budget: document.getElementById('budgetInput').value,
+      cfgLocal: document.getElementById('cfgLocal').value,
+      cfgEnd: document.getElementById('cfgEnd').value,
+      cfgTax: document.getElementById('cfgTax').value,
+      cfgCaixa: document.getElementById('cfgCaixa').value
+    };
+    localStorage.setItem('mercadoData', JSON.stringify(data));
+  }
+
+  function loadData() {
+    const saved = localStorage.getItem('mercadoData');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        items = data.items || [];
+        document.getElementById('budgetInput').value = data.budget || '';
+        document.getElementById('cfgLocal').value = data.cfgLocal || '';
+        document.getElementById('cfgEnd').value = data.cfgEnd || '';
+        document.getElementById('cfgTax').value = data.cfgTax || '';
+        document.getElementById('cfgCaixa').value = data.cfgCaixa || '';
+      } catch (e) {
+        items = [];
+      }
+    }
+    renderList();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeReceipt();
+    if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT' && !document.getElementById('modalOverlay').classList.contains('open')) addItem();
+  });
+
+  document.querySelectorAll('#cfgLocal, #cfgEnd, #cfgTax, #cfgCaixa').forEach(el => {
+    el.addEventListener('input', saveData);
+  });
+
+  window.onload = loadData;
+</script>
+</body>
+</html>
