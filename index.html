@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle de Mercado</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -81,7 +82,7 @@
   }
   .btn-add:active { transform: scale(0.97); }
 
-  .list-section { padding: 24px 16px 0; }
+  .list-section { padding: 24px 16px 24px; }
   .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .list-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-family: 'DM Mono', monospace; }
   .item-count { font-size: 0.7rem; font-family: 'DM Mono', monospace; color: var(--accent2); background: rgba(34,211,238,0.1); padding: 3px 9px; border-radius: 99px; }
@@ -121,28 +122,20 @@
   .sum-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-family: 'DM Mono', monospace; display: block; margin-bottom: 3px; }
   .sum-val { font-family: 'DM Mono', monospace; font-size: 0.9rem; font-weight: 500; color: var(--text); }
   .sum-val.green { color: var(--accent); }
-  .btn-receipt { background: none; border: none; color: var(--accent2); font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; padding: 0; }
-  .btn-receipt .icon { font-size: 1.1rem; }
+  .btn-receipt { background: none; border: none; font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 100%; padding: 0; transition: opacity 0.2s; }
+  .btn-receipt:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-receipt .icon { display: flex; align-items: center; justify-content: center; }
 
   .progress-wrap { height: 8px; background: var(--surface); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
   .progress-bar { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.4s ease, background 0.3s; }
   .progress-info { display: flex; justify-content: space-between; margin-top: 6px; }
   .progress-info span { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); }
 
-  .modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.78); backdrop-filter: blur(8px);
-    z-index: 500; align-items: center; justify-content: center; padding: 20px;
-  }
-  .modal-overlay.open { display: flex; }
-
   .receipt-wrap {
     width: 100%; max-width: 360px; max-height: 90vh;
     overflow-y: auto; position: relative;
-    animation: popIn 0.2s ease;
+    background: transparent;
   }
-  @keyframes popIn { from { opacity:0; transform:scale(0.92) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
-
   .receipt-serrate-top {
     width: 100%; height: 18px;
     background:
@@ -153,32 +146,26 @@
     background:
       radial-gradient(circle at 10px 0px, transparent 10px, #f5f0e8 10px) -10px 0 / 20px 18px repeat-x;
   }
-
   .receipt-body {
     background: #f5f0e8;
     padding: 4px 28px 20px;
     font-family: 'DM Mono', monospace;
     color: #1a1a1a;
   }
-
   .r-center { text-align: center; }
   .r-title { font-size: 1.55rem; font-weight: 800; font-family: 'Syne', sans-serif; letter-spacing: -0.5px; color: #111; }
   .r-sub { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2.5px; color: #999; margin-top: 2px; }
-
   .r-dash { border: none; border-top: 2px dashed #c0b8a8; margin: 13px 0; }
   .r-dot  { border: none; border-top: 1px dotted #c8c0b0; margin: 8px 0; }
-
   .r-meta { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 4px; }
   .r-meta-item .lbl { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
   .r-meta-item .val { font-size: 0.82rem; color: #222; }
-
   .r-col-head {
     display: grid; grid-template-columns: 2fr 0.6fr 1fr 1fr;
     font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #888;
     margin-bottom: 4px; gap: 4px;
   }
   .r-col-head span:not(:first-child) { text-align: right; }
-
   .r-item-row {
     display: grid; grid-template-columns: 2fr 0.6fr 1fr 1fr;
     font-size: 0.78rem; color: #222; padding: 5px 0;
@@ -187,10 +174,8 @@
   .r-item-row span:not(:first-child) { text-align: right; }
   .r-iname { line-height: 1.3; }
   .r-weight-tag { font-size: 0.62rem; color: #888; display: block; }
-
   .r-total-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: #333; padding: 3px 0; }
   .r-total-row.grand { font-size: 1.05rem; font-weight: 700; color: #111; padding-top: 8px; }
-
   .r-footer { text-align: center; font-size: 0.68rem; color: #aaa; line-height: 1.9; margin-top: 14px; }
   .r-barcode {
     margin: 10px auto 0; text-align: center;
@@ -200,27 +185,6 @@
   }
   .r-cod { font-size: 0.6rem; letter-spacing: 1px; color: #bbb; margin-top: 4px; display: block; }
 
-  .r-actions { display: flex; gap: 10px; padding: 14px 28px 0; background: #f5f0e8; }
-  .btn-print-r {
-    flex: 1; padding: 11px; background: #1a1a1a; color: #f5f0e8;
-    border: none; border-radius: 8px; font-family: 'Syne', sans-serif;
-    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s;
-  }
-  .btn-print-r:active { opacity: 0.8; }
-  .btn-close-r {
-    flex: 1; padding: 11px; background: transparent; color: #777;
-    border: 1px solid #c0b8a8; border-radius: 8px;
-    font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  }
-
-  @media print {
-    @page { size: 80mm auto; margin: 0; }
-    body * { visibility: hidden !important; }
-    .receipt-wrap, .receipt-wrap * { visibility: visible !important; }
-    .receipt-wrap { position: absolute; top: 0; left: 0; width: 100%; max-width: 100%; max-height: none; overflow: visible; }
-    .modal-overlay { display: block !important; position: absolute; inset: 0; background: white; padding: 0; }
-    .r-actions { display: none !important; }
-  }
 </style>
 </head>
 <body>
@@ -263,14 +227,10 @@
       <input type="text" id="cfgEnd" placeholder="Ex: Rua das Flores, 12">
     </div>
   </div>
-  <div class="field-row two">
+  <div class="field-row">
     <div>
-      <label>Taxa adicional (%)</label>
-      <input type="text" id="cfgTax" placeholder="Ex: 10" inputmode="decimal">
-    </div>
-    <div>
-      <label>Atendente</label>
-      <input type="text" id="cfgCaixa" placeholder="Ex: Carlos">
+      <label>Divisão da compra</label>
+      <input type="text" id="cfgDivisao" placeholder="Ex: João (50%), Maria (50%)">
     </div>
   </div>
 </div>
@@ -347,15 +307,14 @@
     <span class="sum-val green" id="sumTotal">R$ 0,00</span>
   </div>
   <div class="sum-item">
-    <button class="btn-receipt" onclick="openReceipt()">
-      <span class="icon">🧾</span>
-      <span class="sum-label" style="color:var(--accent2)">Recibo</span>
+    <button class="btn-receipt" onclick="shareWhatsApp()" id="btnBottomShare">
+      <span class="icon" style="color:#25D366">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+        </svg>
+      </span>
+      <span class="sum-label" style="color:#25D366" id="shareLabelText">Enviar</span>
     </button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
-  <div class="receipt-wrap" id="receiptWrap">
   </div>
 </div>
 
@@ -496,24 +455,13 @@
     rem.style.color  = diff >= 0 ? 'var(--accent)' : 'var(--danger)';
   }
 
-  function openReceipt() {
-    if (items.length === 0) { alert('Adicione itens ao carrinho primeiro.'); return; }
-    buildReceipt();
-    document.getElementById('modalOverlay').classList.add('open');
-  }
-
-  function closeReceipt() { document.getElementById('modalOverlay').classList.remove('open'); }
-  function overlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeReceipt(); }
-
-  function buildReceipt() {
-    const local  = document.getElementById('cfgLocal').value.trim()  || 'Nome da Loja';
-    const end    = document.getElementById('cfgEnd').value.trim()    || '—';
-    const caixa  = document.getElementById('cfgCaixa').value.trim()  || '—';
-    const taxPct = parseFloat(document.getElementById('cfgTax').value.replace(',', '.')) || 0;
-
+  function getReceiptHTML() {
+    const local   = document.getElementById('cfgLocal').value.trim()  || 'Meu Mercado';
+    const end     = document.getElementById('cfgEnd').value.trim()    || '—';
+    const divisao = document.getElementById('cfgDivisao').value.trim();
+    
     const subtotal = items.reduce((s, i) => s + i.price, 0);
-    const taxVal   = subtotal * (taxPct / 100);
-    const total    = subtotal + taxVal;
+    const total    = subtotal;
 
     const now     = new Date();
     const dateStr = now.toLocaleDateString('pt-BR');
@@ -530,13 +478,17 @@
         <span>${fmtN(item.price)}</span>
       </div>`).join('');
 
-    const taxRowHtml = taxPct > 0 ? `
-      <div class="r-total-row">
-        <span>Taxa (${taxPct.toLocaleString('pt-BR')}%)</span>
-        <span>${fmtN(taxVal)}</span>
-      </div>` : '';
+    const divRowHtml = divisao ? `
+      <hr class="r-dash">
+      <div class="r-meta">
+        <div class="r-meta-item" style="width: 100%;">
+          <div class="lbl">Divisão da Compra</div>
+          <div class="val">${escHtml(divisao)}</div>
+        </div>
+      </div>
+    ` : '';
 
-    document.getElementById('receiptWrap').innerHTML = `
+    return `
       <div class="receipt-serrate-top"></div>
       <div class="receipt-body">
         <div class="r-center" style="margin-bottom:16px;">
@@ -559,23 +511,14 @@
             <div class="lbl">Hora</div>
             <div class="val">${timeStr}</div>
           </div>
-          <div class="r-meta-item">
-            <div class="lbl">Atendente</div>
-            <div class="val">${escHtml(caixa)}</div>
-          </div>
         </div>
+        ${divRowHtml}
         <hr class="r-dash">
         <div class="r-col-head">
           <span>Item</span><span>Qtd</span><span>Unit.</span><span>Total</span>
         </div>
         ${rowsHtml}
         <div style="margin-top:12px;">
-          <hr class="r-dash">
-          <div class="r-total-row">
-            <span>Subtotal</span>
-            <span>${fmtN(subtotal)}</span>
-          </div>
-          ${taxRowHtml}
           <hr class="r-dot">
           <div class="r-total-row grand">
             <span>TOTAL</span>
@@ -591,10 +534,6 @@
         </div>
       </div>
       <div class="receipt-serrate-bottom"></div>
-      <div class="r-actions">
-        <button class="btn-print-r" onclick="window.print()">🖨️ Imprimir</button>
-        <button class="btn-close-r" onclick="closeReceipt()">Fechar</button>
-      </div>
     `;
   }
 
@@ -612,14 +551,67 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  async function shareWhatsApp() {
+    if (items.length === 0) { alert('Adicione itens ao carrinho primeiro.'); return; }
+    
+    const btn = document.getElementById('btnBottomShare');
+    const lbl = document.getElementById('shareLabelText');
+    const originalContent = lbl.textContent;
+    
+    btn.disabled = true;
+    lbl.textContent = '...';
+
+    try {
+      const tempDiv = document.createElement('div');
+      tempDiv.className = 'receipt-wrap';
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      tempDiv.style.width = '360px';
+      tempDiv.style.maxHeight = 'none';
+      tempDiv.style.overflow = 'visible';
+      tempDiv.style.background = '#f5f0e8';
+      tempDiv.innerHTML = getReceiptHTML();
+      document.body.appendChild(tempDiv);
+
+      const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, backgroundColor: '#f5f0e8' });
+      document.body.removeChild(tempDiv);
+
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], 'recibo.png', { type: 'image/png' });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'Recibo',
+            text: 'Aqui está o recibo da nossa compra!'
+          });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'recibo.png';
+          a.click();
+          URL.revokeObjectURL(url);
+          alert('Imagem do recibo baixada. Você pode anexar e enviar pelo WhatsApp.');
+        }
+        btn.disabled = false;
+        lbl.textContent = originalContent;
+      }, 'image/png', 1.0);
+    } catch (e) {
+      btn.disabled = false;
+      lbl.textContent = originalContent;
+      alert('Erro ao gerar o recibo.');
+    }
+  }
+
   function saveData() {
     const data = {
       items: items,
       budget: document.getElementById('budgetInput').value,
       cfgLocal: document.getElementById('cfgLocal').value,
       cfgEnd: document.getElementById('cfgEnd').value,
-      cfgTax: document.getElementById('cfgTax').value,
-      cfgCaixa: document.getElementById('cfgCaixa').value
+      cfgDivisao: document.getElementById('cfgDivisao').value
     };
     localStorage.setItem('mercadoData', JSON.stringify(data));
   }
@@ -633,8 +625,7 @@
         document.getElementById('budgetInput').value = data.budget || '';
         document.getElementById('cfgLocal').value = data.cfgLocal || '';
         document.getElementById('cfgEnd').value = data.cfgEnd || '';
-        document.getElementById('cfgTax').value = data.cfgTax || '';
-        document.getElementById('cfgCaixa').value = data.cfgCaixa || '';
+        document.getElementById('cfgDivisao').value = data.cfgDivisao || '';
       } catch (e) {
         items = [];
       }
@@ -643,11 +634,10 @@
   }
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeReceipt();
-    if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT' && !document.getElementById('modalOverlay').classList.contains('open')) addItem();
+    if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT') addItem();
   });
 
-  document.querySelectorAll('#cfgLocal, #cfgEnd, #cfgTax, #cfgCaixa').forEach(el => {
+  document.querySelectorAll('#cfgLocal, #cfgEnd, #cfgDivisao').forEach(el => {
     el.addEventListener('input', saveData);
   });
 
